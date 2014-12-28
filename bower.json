@@ -1,0 +1,30 @@
+{
+  "name": "jquery.reels",
+  "version": "1.0.0",
+  "authors": [
+    "Morulus <vladimirmorulus@gmail.com>"
+  ],
+  "description": "Plugin for brahma to create HTML modal windows",
+  "main": [
+    "jquery.reels.js",
+    "jquery.reels.css"
+  ],
+  "moduleType": [
+    "amd",
+    "globals"
+  ],
+  "keywords": [
+    "brahmajs",
+    "overlay",
+    "plugin",
+    "modal",
+    "popup"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/morulus/jquery.reels",
+  "dependencies": {
+    "jquery": ">=1.7.1",
+    "brahma": ">=1.2"
+    "brahma.touch": "latest"
+  }
+}

@@ -1,0 +1,35 @@
+.jquery-reels {
+	overflow:hidden;
+}
+
+.jquery-reels > div:first-child { /* Style for reels */
+	width: 10000%;
+	overflow:hidden;
+}
+
+.jquery-reels > div:first-child > div:first-child { /* Style for train */
+	width:100%;
+	overflow:hidden;
+}
+
+.jquery-reels > div:first-child > div:first-child >* { /* Style for vagons */
+	width:1%;
+	float:left;
+	display:block;
+}
+
+.-reels-transited {
+	-webkit-transition-property: transform;
+	-ms-transition-property: transform;
+	-o-transition-property: transform;
+	-ms-transition-property: transform;
+	-moz-transition-property: transform;
+	transition-property: transform;
+
+	-webkit-transition-timing-function: cubic-bezier(0.39, 0.575, 0.565, 1);
+	-ms-transition-timing-function: cubic-bezier(0.39, 0.575, 0.565, 1);
+	-o-transition-timing-function: cubic-bezier(0.39, 0.575, 0.565, 1);
+	-ms-transition-timing-function: cubic-bezier(0.39, 0.575, 0.565, 1);
+	-moz-transition-timing-function: cubic-bezier(0.39, 0.575, 0.565, 1);
+	transition-timing-function: cubic-bezier(0.39, 0.575, 0.565, 1);
+}
