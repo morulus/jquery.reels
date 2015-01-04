@@ -24,7 +24,7 @@
   "homepage": "https://github.com/morulus/jquery.reels",
   "dependencies": {
     "jquery": ">=1.7.1",
-    "brahma": ">=1.2"
+    "brahma": ">=1.2",
     "brahma.touch": "latest"
   }
 }
