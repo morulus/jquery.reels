@@ -17,7 +17,8 @@
 			infinity: true, // Infinity photos (repeats for ever). The amount should be between 3!
 			init: false, // Execute this function before initial in context
 			listen: false, // Listen for another slider and copy its actions
-			touch: true // Enable touch events
+			touch: true, // Enable touch events
+			minReloadDelay: 0 // Delay between user events
 		}, options || {});
 		this.nodes = {
 			slider: selector,
@@ -96,7 +97,14 @@
 				this.scope.requireReInit = true;
 			} else {
 				this.scope.requireReInit = false;
-			}
+			};
+
+			this.trigger('change'); // Call change event after recalc
+
+			// Проверка. Если у нас слайдов менее 4, то мы выставляет паузу между возможными пользовательскими действиями равными половине времени движения слайда
+			if (this.scope.slides.length<4) this.options.minReloadDelay = Math.round(this.options.duration/2);
+			else this.options.minReloadDelay = 0;
+
 			if ("function"==typeof callback) callback.apply(this);
 		}
 		this.autoplay = function(delay) {
@@ -138,6 +146,8 @@
 			};
 		}
 		this.userPrev = function() {
+			// Невозможность выполнить действие за минимальный блокирующий промежуток времени
+			if (this._getSlidePassedTime()<this.options.minReloadDelay) return false;
 
 			if (this.options.autoplay) {
 				console.log('disable autoplay');
@@ -147,6 +157,9 @@
 			this.prev();
 		};
 		this.userNext = function() {
+			// Невозможность выполнить действие за минимальный блокирующий промежуток времени
+			if (this._getSlidePassedTime()<this.options.minReloadDelay) return false;
+
 			if (this.options.autoplay) {
 
 				if (this.scope.autoplayer) clearInterval(this.scope.autoplayer);
@@ -185,45 +198,51 @@
 		}
 		this.translateX = function(x) {
 			$(this.nodes.train).css({
-				"-webkit-transform": "translateX("+x+'px)',
-				"-o-transform": "translateX("+x+'px)',
-				"-moz-transform": "translateX("+x+'px)',
-				"-ms-transform": "translateX("+x+'px)',
-				"transform": "translateX("+x+'px)'
+				"-webkit-transform": "translate3d("+x+'px,0,0)',
+				"-o-transform": "translate3d("+x+'px,0,0',
+				"-moz-transform": "translate3d("+x+'px,0,0',
+				"-ms-transform": "translate3d("+x+'px,0,0',
+				"transform": "translate3d("+x+'px,0,0'
 			});
 		};
-		this._move = function(callback) {
+		this._move = function(callback, instantly) {
 			var that = this;
+			var instantly = instantly || false;
 			var callback = callback || false;
 			
-			this._beforeAnimationStart();
+			this._beforeAnimationStart(function() {
+				if (instantly) that.disableAnimation();
 
-			if (that.options.css3) {
-				
-				// css3 mode
-				// осуществояем движение поезда по рельсам за счет css3 transitions
-				// отсчет времени останова по событиям transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd
-				// активация onAnimationEnd по завершении
-				this.translateX(that.scope.currentShift*-1);
-				
-				if (that.options.duration===0) {
-					// При моментальном переходе - моментальный вызов callback и onAnimationEnd
-					if ("function"==typeof callback) callback();
+				if (that.options.css3) {
 					
-					that._onAnimationEnd();
-				} else $(that.nodes.train).one("transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd", function() {
-					// При включенной задержке вызов callback-функции и onAnimationEnd по возникновению событий окончания транзакций
+					// css3 mode
+					// осуществояем движение поезда по рельсам за счет css3 transitions
+					// отсчет времени останова по событиям transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd
+					// активация onAnimationEnd по завершении
+					that.translateX(that.scope.currentShift*-1);
 					
-					if ("function"==typeof callback) callback();
-					that._onAnimationEnd();
-				});
-			} else {
-				// при отключенной опции css3 анимация проводится старым способом через покадровую анимацию jQuery
-				$(that.nodes.train).animate({"margin-left": (that.scope.currentShift*-1)+'px'}, that.options.duration, function() {
-					if ("function"==typeof callback) callback();
-					that._onAnimationEnd();
-				});
-			};
+					if (that.options.duration===0) {
+						// При моментальном переходе - моментальный вызов callback и onAnimationEnd
+						if ("function"==typeof callback) callback();
+						
+						setTimeout(function() { that._onAnimationEnd(); }, 100);
+					} else $(that.nodes.train).one("transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd", function() {
+						// При включенной задержке вызов callback-функции и onAnimationEnd по возникновению событий окончания транзакций
+						
+						if ("function"==typeof callback) callback();
+						that._onAnimationEnd();
+					});
+				} else {
+					// при отключенной опции css3 анимация проводится старым способом через покадровую анимацию jQuery
+					$(that.nodes.train).animate({"margin-left": (that.scope.currentShift*-1)+'px'}, that.options.duration, function() {
+						if ("function"==typeof callback) callback();
+						that._onAnimationEnd();
+					});
+				};
+			});
+		}
+		this._getSlidePassedTime = function() {
+			return (new Date().getTime())-this.scope.startTime;
 		}
 		this._onComplete = function(callback) {
 			
@@ -233,7 +252,7 @@
 			
 			var endTime = new Date().getTime();
 			
-			if ("function"==typeof callback) callback.call(that, endTime-startTime);
+			if ("function"==typeof callback) callback.call(that, endTime-this.scope.startTime);
 		}
 		this._beforeAnimationStart = function(callback) {
 			var that = this;
@@ -255,11 +274,13 @@
 					that.scope.transShift = that.scope.transShift-$(fch).outerWidth();
 					
 					if (this.options.css3) {
+						
 						$(that.nodes.train).css({
 							"margin-left": (that.scope.transShift*-1)+'px',
 							"margin-right": (that.scope.transShift)+'px',
 							"-webkit-animation-fill-mode": "forward"
 						});
+
 					} else {
 						// Mofif that.scope.currentShift
 						that.scope.currentShift += that.scope.transShift;
@@ -281,15 +302,13 @@
 					that.scope.slides.unshift(lastKey[0]);
 					//
 					this.scope.currentSlideIndex++;
-					
 
 					that.scope.transShift = that.scope.transShift+$(fch).outerWidth();
 						
 					if (this.options.css3) {
 						$(that.nodes.train).css({
 							"margin-left": (that.scope.transShift*-1)+'px',
-							"margin-right": (that.scope.transShift)+'px',
-							"-webkit-animation-fill-mode": "forward"
+							"margin-right": (that.scope.transShift)+'px'
 						});
 					} else {
 						// Mofif that.scope.currentShift
@@ -304,6 +323,7 @@
 					
 				};
 			};
+			if ("function"==typeof callback) callback.apply(this);
 		}
 		this._onAnimationEnd = function(callback) {
 				
@@ -315,6 +335,7 @@
 				that._onComplete();
 		};
 		this.gotoElement = function(element) {
+			console.log('goto element');
 			this.goto($(element).index());
 		};
 		this.goto = function(index, callback, instantly) {
@@ -323,12 +344,12 @@
 			var callback = callback || false;
 			var index = "undefined"!=typeof index ? index : this.scope.currentSlideIndex;
 			var that = this;
-			
+
 			// Calc realtime
-			var startTime = new Date().getTime();
+			this.scope.startTime = new Date().getTime();
 
 			if (!this.options.css3 && this.scope.animated) return false; 
-			console.log('goto', index);
+			
 			that.scope.currentSlideIndex = index;
 
 			var calcs = function() {
@@ -353,15 +374,8 @@
 				
 				that.scope.currentShift = shift;
 
-				if (instantly) {
-					
-					that.disableAnimation();
-					setTimeout(function() {
-						that._move(callback);
-					}, 20);
-				} else {
-					that._move(callback);
-				};
+				that.trigger('select', [index]); // Call event `select` when slides changes
+				that._move(callback, instantly);
 			}
 
 			// Check for `need reinit` options
@@ -397,7 +411,7 @@
 
 				// Test fot css3 support
 				(this.options.css3=="auto") && (this.options.css3 = (function(d) {
-					console.log('test', d.style['transition']);
+					
 					if (typeof d.style['transition'] == "string") return true;
 					else return false;
 				})(document.body || document.documentElement));
@@ -451,7 +465,7 @@
 				for (var i=0;i<triggers.length;i++) {
 					if ($(triggers[i]).attr("goto")) {
 						$(triggers[i]).click(function() {
-							that.goto($(that.nodes.train).find('[name='+$(this).attr("goto")+']'));
+							that.gotoElement($(that.nodes.train).find('[name='+$(this).attr("goto")+']'));
 							$(this).parent().find('>*').removeClass("current");
 							$(this).addClass("current");
 							return false;
@@ -460,6 +474,8 @@
 				}
 				// Get frames sizes
 				that.recalc();
+				// And recalc after loading
+				this.init('preloads');
 
 				// Set style
 				this.enableAnimation();
@@ -487,10 +503,18 @@
 					});
 				});
 
+				$(window).ready(function() {
+					that.recalc(function() {
+						this.goto();
+					});
+				});
+
 				// Enable touch
 				if (this.options.touch && this.options.css3) {
 					this.init('touch');
 				}
+
+				
 			},
 			/* Touch module */
 			'touch': function() {
@@ -502,7 +526,9 @@
 					this.init = function() {
 						var plugin = this;
 						// Bind touch events
-						Brahma($(this.parent.nodes.reels)).component('touch')
+						Brahma($(this.parent.nodes.reels)).component('touch', {
+							preventDefaultEvents: false
+						})
 						.bind('wipe', function(e) {
 							plugin.dragTry(e.dX);
 						})
@@ -537,7 +563,7 @@
 					// Try move to next slide
 					this.tryNext = function() {
 						this.reset();
-						if (this.parent.options.infinity || this.parent.scope.currentSlideIndex<(this.slides.length-1)) {
+						if (this.parent.options.infinity || this.parent.scope.currentSlideIndex<(this.parent.scope.slides.length-1)) {
 							
 							this.parent.next();
 						} else {
@@ -556,6 +582,20 @@
 					}
 					this.init();
 				})(this);
+			},
+			/* Preload all images inside slides*/
+			'preloads': function() {
+				var that = this;
+				$(this.nodes.train).find('img').each(function() {
+					var i = new Image();
+					i.onload = function() {
+						
+						that.recalc();
+						// Show first frame
+						that.goto(0, function(){},true);
+					};
+					i.src = $(this).attr("src");
+				});
 			}
 		}
 		this.init();
