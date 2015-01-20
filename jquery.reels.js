@@ -565,7 +565,7 @@
 						this.reset();
 						if (this.parent.options.infinity || this.parent.scope.currentSlideIndex<(this.parent.scope.slides.length-1)) {
 							
-							this.parent.next();
+							this.parent.userNext();
 						} else {
 							this.reset();
 						}
@@ -575,7 +575,7 @@
 
 						if (this.parent.options.infinity || this.parent.scope.currentSlideIndex>1) {
 
-							this.parent.prev();
+							this.parent.userPrev();
 						} else {
 							this.reset();
 						}
