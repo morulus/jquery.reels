@@ -198,10 +198,15 @@
 		}
 		this.translateX = function(x) {
 			$(this.nodes.train).css({
+
 				"-webkit-transform": "translate3d("+x+'px,0,0)',
+
 				"-o-transform": "translate3d("+x+'px,0,0',
+
 				"-moz-transform": "translate3d("+x+'px,0,0',
+
 				"-ms-transform": "translate3d("+x+'px,0,0',
+
 				"transform": "translate3d("+x+'px,0,0'
 			});
 		};
@@ -302,6 +307,7 @@
 					that.scope.slides.unshift(lastKey[0]);
 					//
 					this.scope.currentSlideIndex++;
+					
 
 					that.scope.transShift = that.scope.transShift+$(fch).outerWidth();
 						
@@ -344,7 +350,7 @@
 			var callback = callback || false;
 			var index = "undefined"!=typeof index ? index : this.scope.currentSlideIndex;
 			var that = this;
-
+			
 			// Calc realtime
 			this.scope.startTime = new Date().getTime();
 
@@ -367,13 +373,14 @@
 				shift-=that.scope.transShift;
 
 				that.scope.currentSlide = $(that.nodes.train).find('>*:eq('+index+')');
+				
 
 				$(that.nodes.train).find('>*').removeClass("current");
 				$(that.scope.currentSlide).addClass("current");
 				
 				
 				that.scope.currentShift = shift;
-
+				
 				that.trigger('select', [index]); // Call event `select` when slides changes
 				that._move(callback, instantly);
 			}
