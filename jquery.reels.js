@@ -99,7 +99,7 @@
 				this.scope.requireReInit = false;
 			};
 
-			console.log('this.scope.slides', this.scope.slides);
+			this.trigger('change'); // Call change event after recalc
 
 			// Проверка. Если у нас слайдов менее 4, то мы выставляет паузу между возможными пользовательскими действиями равными половине времени движения слайда
 			if (this.scope.slides.length<4) this.options.minReloadDelay = Math.round(this.options.duration/2);
