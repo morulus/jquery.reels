@@ -198,11 +198,16 @@
 		}
 		this.translateX = function(x) {
 			$(this.nodes.train).css({
-				"-webkit-transform": "translateX("+x+'px)',
-				"-o-transform": "translateX("+x+'px)',
-				"-moz-transform": "translateX("+x+'px)',
-				"-ms-transform": "translateX("+x+'px)',
-				"transform": "translateX("+x+'px)'
+
+				"-webkit-transform": "translate3d("+x+'px,0,0)',
+
+				"-o-transform": "translate3d("+x+'px,0,0',
+
+				"-moz-transform": "translate3d("+x+'px,0,0',
+
+				"-ms-transform": "translate3d("+x+'px,0,0',
+
+				"transform": "translate3d("+x+'px,0,0'
 			});
 		};
 		this._move = function(callback, instantly) {
@@ -368,14 +373,15 @@
 				shift-=that.scope.transShift;
 
 				that.scope.currentSlide = $(that.nodes.train).find('>*:eq('+index+')');
-				that.trigger('select');
+				
 
 				$(that.nodes.train).find('>*').removeClass("current");
 				$(that.scope.currentSlide).addClass("current");
 				
 				
 				that.scope.currentShift = shift;
-
+				
+				that.trigger('select', [index]); // Call event `select` when slides changes
 				that._move(callback, instantly);
 			}
 
@@ -527,7 +533,9 @@
 					this.init = function() {
 						var plugin = this;
 						// Bind touch events
-						Brahma($(this.parent.nodes.reels)).component('touch')
+						Brahma($(this.parent.nodes.reels)).component('touch', {
+							preventDefaultEvents: false
+						})
 						.bind('wipe', function(e) {
 							plugin.dragTry(e.dX);
 						})
@@ -562,7 +570,7 @@
 					// Try move to next slide
 					this.tryNext = function() {
 						this.reset();
-						if (this.parent.options.infinity || this.parent.scope.currentSlideIndex<(this.slides.length-1)) {
+						if (this.parent.options.infinity || this.parent.scope.currentSlideIndex<(this.parent.scope.slides.length-1)) {
 							
 							this.parent.next();
 						} else {
