@@ -10,6 +10,8 @@
 ;(function($) {
 	var reels = function(selector, options) {
 		this.options = $.extend({
+			
+			effect: 'slide', // Aviable effect (slide, smooth)
 			duration: 650,
 			css3: 'auto',
 			triggers: false, // jQuery objects, selector or array,
@@ -150,7 +152,6 @@
 			if (this._getSlidePassedTime()<this.options.minReloadDelay) return false;
 
 			if (this.options.autoplay) {
-				console.log('disable autoplay');
 				if (this.scope.autoplayer) clearInterval(this.scope.autoplayer);
 				this.options.autoplay = false;
 			}
@@ -335,7 +336,7 @@
 				that._onComplete();
 		};
 		this.gotoElement = function(element) {
-			console.log('goto element');
+			
 			this.goto($(element).index());
 		};
 		this.goto = function(index, callback, instantly) {
@@ -345,12 +346,15 @@
 			var index = "undefined"!=typeof index ? index : this.scope.currentSlideIndex;
 			var that = this;
 
+			var nowIndex = that.scope.currentSlideIndex;
+			that.scope.currentSlideIndex = index;
+
+			
 			// Calc realtime
 			this.scope.startTime = new Date().getTime();
 
-			if (!this.options.css3 && this.scope.animated) return false; 
 			
-			that.scope.currentSlideIndex = index;
+			if (!this.options.css3 && this.scope.animated) return false; 
 
 			var calcs = function() {
 				// Get element index
@@ -600,6 +604,9 @@
 		}
 		this.init();
 	};
+
+
+	// Effects 
 
 	$.fn.reels = $.fn.reels = function(options) {
 		var options = options || {};
