@@ -13,9 +13,12 @@
 }
 
 .jquery-reels>*:first-child >*:first-child >* { /* Style for vagons */
-	width:1%;
 	float:left;
 	display:block;
+}
+
+.jquery-reels > *:first-child > *:first-child.wide >* {
+	width:1%;
 }
 
 .-reels-transited {
@@ -23,10 +26,18 @@
 	-moz-backface-visibility: hidden;
 	-o-backface-visibility: hidden;
 	backface-visibility: hidden;
-	
-	-webkit-transition: -webkit-transform 1s cubic-bezier(0.39, 0.575, 0.565, 1);
-	-o-transition: -o-transform 1s cubic-bezier(0.39, 0.575, 0.565, 1);
-	-ms-transition: -ms-transform 1s cubic-bezier(0.39, 0.575, 0.565, 1);
-	-moz-transition: -moz-transform 1s cubic-bezier(0.39, 0.575, 0.565, 1);
-	transition: transform 1s cubic-bezier(0.39, 0.575, 0.565, 1);
+
+	-webkit-transition-property: transform;
+	-ms-transition-property: transform;
+	-o-transition-property: transform;
+	-ms-transition-property: transform;
+	-moz-transition-property: transform;
+	transition-property: transform;
+
+	-webkit-transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+	-ms-transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+	-o-transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+	-ms-transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+	-moz-transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+	transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
 }

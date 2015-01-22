@@ -10,8 +10,7 @@
 ;(function($) {
 	var reels = function(selector, options) {
 		this.options = $.extend({
-			
-			effect: 'slide', // Aviable effect (slide, smooth)
+			effect: 'slide', // Aviable effect
 			duration: 650,
 			css3: 'auto',
 			triggers: false, // jQuery objects, selector or array,
@@ -20,7 +19,10 @@
 			init: false, // Execute this function before initial in context
 			listen: false, // Listen for another slider and copy its actions
 			touch: true, // Enable touch events
-			minReloadDelay: 0 // Delay between user events
+			minReloadDelay: 0, // Delay between user events
+			shiftX: 0, // constant shift the x-axis (fot half-view preview slide)
+			wide: true, // Wideslide 
+			centered: false // Try to show slide on center of wrapper
 		}, options || {});
 		this.nodes = {
 			slider: selector,
@@ -95,13 +97,14 @@
 					width: $(this).width()
 				});
 			});
+
+			this.trigger('change'); // Call change event after recalc
+			
 			if (!$(this.nodes.train).is(':visible')) {
 				this.scope.requireReInit = true;
 			} else {
 				this.scope.requireReInit = false;
 			};
-
-			this.trigger('change'); // Call change event after recalc
 
 			// Проверка. Если у нас слайдов менее 4, то мы выставляет паузу между возможными пользовательскими действиями равными половине времени движения слайда
 			if (this.scope.slides.length<4) this.options.minReloadDelay = Math.round(this.options.duration/2);
@@ -212,6 +215,7 @@
 			var callback = callback || false;
 			
 			this._beforeAnimationStart(function() {
+
 				if (instantly) that.disableAnimation();
 
 				if (that.options.css3) {
@@ -220,7 +224,7 @@
 					// осуществояем движение поезда по рельсам за счет css3 transitions
 					// отсчет времени останова по событиям transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd
 					// активация onAnimationEnd по завершении
-					that.translateX(that.scope.currentShift*-1);
+					that.translateX( (that.scope.currentShift-that.options.shiftX)*-1);
 					
 					if (that.options.duration===0) {
 						// При моментальном переходе - моментальный вызов callback и onAnimationEnd
@@ -235,7 +239,7 @@
 					});
 				} else {
 					// при отключенной опции css3 анимация проводится старым способом через покадровую анимацию jQuery
-					$(that.nodes.train).animate({"margin-left": (that.scope.currentShift*-1)+'px'}, that.options.duration, function() {
+					$(that.nodes.train).animate({"margin-left": ((that.scope.currentShift-that.options.shiftX)*-1)+'px'}, that.options.duration, function() {
 						if ("function"==typeof callback) callback();
 						that._onAnimationEnd();
 					});
@@ -277,8 +281,8 @@
 					if (this.options.css3) {
 						
 						$(that.nodes.train).css({
-							"margin-left": (that.scope.transShift*-1)+'px',
-							"margin-right": (that.scope.transShift)+'px',
+							"margin-left": ( (that.scope.transShift-that.options.shiftX)*-1)+'px',
+							"margin-right": (that.scope.transShift-that.options.shiftX)+'px',
 							"-webkit-animation-fill-mode": "forward"
 						});
 
@@ -287,7 +291,7 @@
 						that.scope.currentShift += that.scope.transShift;
 						// Modif reels margin when no css3 mode
 						$(that.nodes.train).css({
-							"margin-left": ((that.scope.currentShift+(that.scope.transShift))*-1)+'px'
+							"margin-left": ((that.scope.currentShift+that.scope.transShift-that.options.shiftX)*-1)+'px'
 						});
 						// zeroing trans shift if it's not css3 mode
 						if (!that.options.css3)	that.scope.transShift = 0;
@@ -303,6 +307,7 @@
 					that.scope.slides.unshift(lastKey[0]);
 					//
 					this.scope.currentSlideIndex++;
+					
 
 					that.scope.transShift = that.scope.transShift+$(fch).outerWidth();
 						
@@ -336,7 +341,6 @@
 				that._onComplete();
 		};
 		this.gotoElement = function(element) {
-			
 			this.goto($(element).index());
 		};
 		this.goto = function(index, callback, instantly) {
@@ -345,16 +349,15 @@
 			var callback = callback || false;
 			var index = "undefined"!=typeof index ? index : this.scope.currentSlideIndex;
 			var that = this;
-
+			
 			var nowIndex = that.scope.currentSlideIndex;
 			that.scope.currentSlideIndex = index;
 
-			
 			// Calc realtime
 			this.scope.startTime = new Date().getTime();
 
-			
 			if (!this.options.css3 && this.scope.animated) return false; 
+
 
 			var calcs = function() {
 				// Get element index
@@ -363,6 +366,14 @@
 				// Calc shift
 				for (var i =0;i<index;i++) {
 					shift+=that.scope.slides[i].width;
+				}
+
+				if (that.options.centered) {
+					// This option will enable centered position of slide
+					// Нам необходимо взять ширину слайда и ширину контенера
+					var sliderWidth = $(that.nodes.slider).width();
+					var slideWidth = that.scope.slides[i].width;
+					that.options.shiftX = Math.round((sliderWidth-slideWidth)/2);
 				}
 
 				if (that.options.css3)
@@ -377,7 +388,7 @@
 				
 				
 				that.scope.currentShift = shift;
-
+				
 				that.trigger('select', [index]); // Call event `select` when slides changes
 				that._move(callback, instantly);
 			}
@@ -394,6 +405,84 @@
 			
 			return this;	
 		}
+		/*
+			Форсированное указание на то, что в конце списка появился ещё один слайд.
+			Провоцирует лишь пересчет слайдов
+		*/
+		this.forceAppended = function() {
+			var that = this;
+			this.recalc();
+			this.preloadSlides([$(this.nodes.train).find('>*:last-child')], function() {
+				that.recalc();
+
+				that.goto();
+			});
+		};
+		/*
+			Форсирование указание на то, что вначале списка появился ещё один слайд.
+			Провоцирует моментальный сдвиг на ширину нового слайда.
+		*/
+		this.forcePrepended = function() {
+			var that = this;
+			var fit = function(slides) {
+				var fch = slides[0];
+				that.scope.currentSlideIndex++;
+				that.scope.transShift = that.scope.transShift+$(fch).outerWidth();
+					
+				if (that.options.css3) {
+					$(that.nodes.train).css({
+						"margin-left": (that.scope.transShift*-1)+'px',
+						"margin-right": (that.scope.transShift)+'px',
+						"-webkit-animation-fill-mode": "forward"
+					});
+				} else {
+					// Mofif that.scope.currentShift
+					that.scope.currentShift += that.scope.transShift;
+					// Modif reels margin when no css3 mode
+					$(that.nodes.train).css({
+						"margin-left": ((that.scope.currentShift+(that.scope.transShift))*-1)+'px'
+					});
+					// zeroing trans shift if it's not css3 mode
+					if (!that.options.css3)	that.scope.transShift = 0;
+				};
+				that.goto();
+			};
+			fit();
+			this.preloadSlides([$(that.nodes.train).find('>*:first-child')], fit);
+		};
+		/* Ждет когда слайд будет полностью загружен, затем выполняет callback */
+		this.preloadSlides = function(slides, callback) {
+			var that = this;
+			var loadings = 0;
+			var images = [];
+			var callback = callback || function() {};
+			if (!(slides instanceof Array)) slides = [slides];
+			var check = function() {
+				if (loadings<=0) callback(that);
+			}
+			$.each(slides, function() {
+				$(this).find('img').each(function() {
+					
+					images.push($(this).attr("src"));
+					loadings++;
+					
+				});
+			});
+			if (images.length>0) {
+				for(var i =0;i<images.length;i++) {
+					(function(url) {
+						var test = new Image();
+						test.onload = test.onerror = function() {
+							loadings--;
+							check();	
+						}
+						test.src = url;
+					})(images[i]);
+				}
+			} else {
+				callback.call(this);
+			}
+		}
 		this.modules = {
 			/* Main module */
 			'main': function() {
@@ -404,6 +493,9 @@
 				// Initial nodes
 				this.nodes.reels = $(this.nodes.slider).find('>*:first-child');			
 				this.nodes.train = $(this.nodes.reels).find('>*:first-child');
+
+				// Sey chock-a-block
+				if (this.options.wide) $(this.nodes.train).addClass("wide");
 
 				// Set default slide
 				this.scope.currentSlide = $(this.nodes.train).find('>*:first-child');
@@ -543,10 +635,10 @@
 					this.dragTry = function(distance) {
 						this.state.tryDistance = distance;
 						this.parent.disableAnimation();
-						this.parent.translateX( (this.parent.scope.currentShift+distance) *-1);
+						this.parent.translateX( (this.parent.scope.currentShift+distance-this.parent.options.shiftX) *-1);
 					}
 					this.reset = function() {
-						this.parent.translateX(this.parent.scope.currentShift*-1);
+						this.parent.translateX((this.parent.scope.currentShift-this.parent.options.shiftX)*-1);
 					}
 					this.throwTry = function(distance) {
 						this.parent.enableAnimation();
@@ -581,6 +673,7 @@
 
 							this.parent.userPrev();
 						} else {
+							
 							this.reset();
 						}
 					}
@@ -604,9 +697,6 @@
 		}
 		this.init();
 	};
-
-
-	// Effects 
 
 	$.fn.reels = $.fn.reels = function(options) {
 		var options = options || {};
