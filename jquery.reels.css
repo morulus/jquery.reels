@@ -27,17 +27,17 @@
 	-o-backface-visibility: hidden;
 	backface-visibility: hidden;
 
-	-webkit-transition-property: transform;
-	-ms-transition-property: transform;
-	-o-transition-property: transform;
-	-ms-transition-property: transform;
-	-moz-transition-property: transform;
+	-webkit-transition-property: -webkit-transform;
+	-ms-transition-property: -ms-transform;
+	-o-transition-property: -o-ttransform;
+	-ms-transition-property: -ms-transform;
+	-moz-transition-property: -moz-transform;
 	transition-property: transform;
 
-	-webkit-transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
-	-ms-transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
-	-o-transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
-	-ms-transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
-	-moz-transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
-	transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+	-webkit-transition-timing-function: ease;
+	-ms-transition-timing-function: ease;
+	-o-transition-timing-function: ease;
+	-ms-transition-timing-function: ease;
+	-moz-transition-timing-function: ease;
+	transition-timing-function: ease;
 }

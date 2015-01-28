@@ -94,7 +94,7 @@
 			$(this.nodes.train).find('>*').each(function() {
 				
 				that.scope.slides.push({
-					width: $(this).width()
+					width: $(this).outerWidth()
 				});
 			});
 
@@ -201,6 +201,7 @@
 			return this;
 		}
 		this.translateX = function(x) {
+
 			$(this.nodes.train).css({
 				"-webkit-transform": "translate3d("+x+'px,0,0)',
 				"-o-transform": "translate3d("+x+'px,0,0',
@@ -224,6 +225,7 @@
 					// осуществояем движение поезда по рельсам за счет css3 transitions
 					// отсчет времени останова по событиям transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd
 					// активация onAnimationEnd по завершении
+					console.log('translateX S', that.scope.currentShift, that.options.shiftX);
 					that.translateX( (that.scope.currentShift-that.options.shiftX)*-1);
 					
 					if (that.options.duration===0) {
@@ -367,11 +369,10 @@
 				for (var i =0;i<index;i++) {
 					shift+=that.scope.slides[i].width;
 				}
-
 				if (that.options.centered) {
 					// This option will enable centered position of slide
 					// Нам необходимо взять ширину слайда и ширину контенера
-					var sliderWidth = $(that.nodes.slider).width();
+					var sliderWidth = $(that.nodes.slider).outerWidth();
 					var slideWidth = that.scope.slides[i].width;
 					that.options.shiftX = Math.round((sliderWidth-slideWidth)/2);
 				}
@@ -495,7 +496,11 @@
 				this.nodes.train = $(this.nodes.reels).find('>*:first-child');
 
 				// Sey chock-a-block
-				if (this.options.wide) $(this.nodes.train).addClass("wide");
+				if (this.options.wide) {
+					console.log('yes, its white', this.options.wide);
+					$(this.nodes.train).addClass("wide");
+
+				}
 
 				// Set default slide
 				this.scope.currentSlide = $(this.nodes.train).find('>*:first-child');
@@ -623,7 +628,10 @@
 						var plugin = this;
 						// Bind touch events
 						Brahma($(this.parent.nodes.reels)).component('touch', {
-							preventDefaultEvents: false
+							minMoveX: 1,
+							minMoveY: 999,
+							freeClick: true,
+							preventDefaultEvents: true
 						})
 						.bind('wipe', function(e) {
 							plugin.dragTry(e.dX);
@@ -643,7 +651,7 @@
 					this.throwTry = function(distance) {
 						this.parent.enableAnimation();
 						if (Math.abs(this.state.tryDistance)>(this.parent.scope.slides[this.parent.scope.currentSlideIndex].width)/4) {
-
+							this.parent.scope.currentShift=this.parent.scope.currentShift+this.state.tryDistance;
 							if (this.state.tryDistance>0) {
 								
 								this.tryNext();
@@ -689,7 +697,7 @@
 						
 						that.recalc();
 						// Show first frame
-						that.goto(0, function(){},true);
+						that.goto(that.scope.currentSlideIndex, function(){},true);
 					};
 					i.src = $(this).attr("src");
 				});
