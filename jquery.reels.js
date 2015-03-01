@@ -22,6 +22,8 @@
 			minReloadDelay: 0, // Delay between user events
 			shiftX: 0, // constant shift the x-axis (fot half-view preview slide)
 			wide: true, // Wideslide 
+			slideWidth: false, // Ширина слайда, которая выставляется принудительно
+			visibleCount: 1, // Количество слайдов, которое помещается в визуальный ряд (Заменить на рассчет длинны!)
 			centered: false // Try to show slide on center of wrapper
 		}, options || {});
 		this.nodes = {
@@ -92,7 +94,7 @@
 			this.scope.slides = [];
 			this.scope.slidesMap = {};
 			$(this.nodes.train).find('>*').each(function() {
-				
+				if (that.options.slideWidth) $(this).css("width", that.options.slideWidth);
 				that.scope.slides.push({
 					width: $(this).outerWidth()
 				});
@@ -107,8 +109,21 @@
 			};
 
 			// Проверка. Если у нас слайдов менее 4, то мы выставляет паузу между возможными пользовательскими действиями равными половине времени движения слайда
-			if (this.scope.slides.length<4) this.options.minReloadDelay = Math.round(this.options.duration/2);
-			else this.options.minReloadDelay = 0;
+			if (this.scope.slides.length<4) {
+				this.options.minReloadDelay = Math.round(this.scope._.duration/2);
+			}
+			
+			// Hide controls
+			if (this.nodes.controlLeft || this.nodes.controlRight) {
+
+				if (this.scope.slides.length<2) {
+					$(this.nodes.controlLeft).hide();
+					$(this.nodes.controlRight).hide();
+				} else {
+					$(this.nodes.controlLeft).show();
+					$(this.nodes.controlRight).show();
+				}
+			}
 
 			if ("function"==typeof callback) callback.apply(this);
 		}
@@ -162,7 +177,11 @@
 		};
 		this.userNext = function() {
 			// Невозможность выполнить действие за минимальный блокирующий промежуток времени
-			if (this._getSlidePassedTime()<this.options.minReloadDelay) return false;
+			if (this._getSlidePassedTime()<this.options.minReloadDelay) {
+				
+				return false;
+			}
+			console.log('this.options.minReloadDelay', this.options.minReloadDelay);
 
 			if (this.options.autoplay) {
 
@@ -225,7 +244,7 @@
 					// осуществояем движение поезда по рельсам за счет css3 transitions
 					// отсчет времени останова по событиям transitionend webkitTransitionEnd oTransitionEnd MSTransitionEnd
 					// активация onAnimationEnd по завершении
-					console.log('translateX S', that.scope.currentShift, that.options.shiftX);
+					
 					that.translateX( (that.scope.currentShift-that.options.shiftX)*-1);
 					
 					if (that.options.duration===0) {
@@ -265,8 +284,11 @@
 			var that = this;
 			var callback = callback || false;
 			if (that.options.infinity) {
-						
-				if ($(that.scope.currentSlide).is(":last-child")) {
+
+				// С учетом опции вместимости слайдов в визуальный ряд, определяем последний слайд в списке
+				var highSlide = this.scope.currentSlideIndex+(this.options.visibleCount-1);
+
+				if ($(this.nodes.train).find('>*:eq('+highSlide+')').is(":last-child")) {
 
 					// Если текущий тэг последний в списке, мы должны взять элемент из начала и подставить в конец
 					// При этом конечно происходит сдвиг положения поезда ровно на ширину слайда
@@ -495,9 +517,12 @@
 				this.nodes.reels = $(this.nodes.slider).find('>*:first-child');			
 				this.nodes.train = $(this.nodes.reels).find('>*:first-child');
 
+				// Initial temp duration
+				this.scope._.duration = this.options.duration;
+
 				// Sey chock-a-block
 				if (this.options.wide) {
-					console.log('yes, its white', this.options.wide);
+					
 					$(this.nodes.train).addClass("wide");
 
 				}
@@ -615,6 +640,11 @@
 					this.init('touch');
 				}
 
+				// Enable controls if slides more than
+				if (this.options.controls) {
+					this.init('controls');
+				}
+
 				
 			},
 			/* Touch module */
@@ -701,6 +731,125 @@
 					};
 					i.src = $(this).attr("src");
 				});
+			},
+			/* Controls */
+			'controls': function() {
+				var that = this;
+				// Controls options
+				var options = "object" == typeof this.options.controls ? this.options.controls : {};
+
+				// Initial left and right options
+				var leftOptions = {
+					shadow: true,
+					style: false,
+					"class": false
+				};
+				var rightOptions = {
+					shadow: true,
+					style: false,
+					"class": false
+				};
+
+				// Get options for left and right, or inherit from general options
+				if ("object"===typeof options.left) {
+					leftOptions = $.extend(leftOptions, options.left);
+				} else {
+					leftOptions = $.extend(leftOptions, options);
+				}
+
+				if ("object"===typeof options.right) {
+					rightOptions = $.extend(rightOptions, options.right);
+				} else {
+					rightOptions = $.extend(rightOptions, options);
+				}
+
+				$(this.nodes.slider)
+					.css("position", "relative");
+
+				// Add controls left
+				(function(options) {console.log('options', options);
+					if ("string"!==typeof options["class"]) {
+						// Get shadow option
+						var background = !options.shadow ? 'transparent' : 'rgba(0,0,0,0.2)';
+
+						var style = {
+							"position": "absolute",
+							"cursor": "pointer",
+							"left": "0px",
+							"top": "0%",
+							"height": "100%",
+							"width": "30px",
+							"background": "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAaCAYAAACHD21cAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyBpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBXaW5kb3dzIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOkExOTY3MkNFODlGNjExRTQ5NTExRjg4RjlGMTU1Q0ZDIiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOkExOTY3MkNGODlGNjExRTQ5NTExRjg4RjlGMTU1Q0ZDIj4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6QTE5NjcyQ0M4OUY2MTFFNDk1MTFGODhGOUYxNTVDRkMiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6QTE5NjcyQ0Q4OUY2MTFFNDk1MTFGODhGOUYxNTVDRkMiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz4qrjKQAAAAuUlEQVR42pzUUQrCMAwG4M6Jd9VbbCiCMBgIA58Gg8FAEG/gu+CZaqspBF3X/28gG3v4BmmTFNZaQ0bn8mU8JPJsv9EzqBU0uCyz0Kc8ADWCxoAQGNCkUQqeYmgJHgVd51AMJtEc3Cu0Wapff1Qo0rAWdENQgA9BdxT5XLmGLU1OyB8OTH2/hwNdQ+w6YEy3WqrlmhSmxwkdq78BRmEU00uKWR0hO4XNmmiynby3/lFkLOSLy+dbgAEA9T/S6ppLJVUAAAAASUVORK5CYII=') center center no-repeat "+background
+						};
+
+						// Import custome style
+						if ("object"===typeof options.style) style = $.extend(style,options.style);
+					} else {
+						var style = {};
+					}
+
+					$(this.nodes.slider)
+					.put($('<div />', {
+						"class":"controls-left"
+					}))
+					.css(style)
+					.condition("string"===typeof options["class"], function() {
+						$(this).addClass(options["class"]);
+						return this;
+					}, function() { return this; })
+					.bind('click', function() {
+
+						that.userPrev();
+						return false;
+					})
+					.tie(function() {
+						that.nodes.controlLeft = this;
+					})
+					.put($('<div />'));
+				}).call(this, leftOptions);
+
+				// Add controls right
+				(function(options) {
+
+					if ("string"!==typeof options["class"]) {
+						// Get shadow option
+						var background = !options.shadow ? 'transparent' : 'rgba(0,0,0,0.2)';
+
+						var style = {
+							"position": "absolute",
+							"cursor": "pointer",
+							"right": "0px",
+							"top": "0%",
+							"height": "100%",
+							"width": "30px",
+							"background": "url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAaCAYAAACHD21cAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyBpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBXaW5kb3dzIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOkExOTY3MkQyODlGNjExRTQ5NTExRjg4RjlGMTU1Q0ZDIiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOkExOTY3MkQzODlGNjExRTQ5NTExRjg4RjlGMTU1Q0ZDIj4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6QTE5NjcyRDA4OUY2MTFFNDk1MTFGODhGOUYxNTVDRkMiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6QTE5NjcyRDE4OUY2MTFFNDk1MTFGODhGOUYxNTVDRkMiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz7C/KBAAAAAtElEQVR42mL4//9/MhBPA2IGUjCImPMfAiaTqpEZiBdBNU8gRSNZmpE5IM1LoZp7SdEI07yCGM3YBJE1d5GiEaZ5NVRzOykaCWomFHpsSJpbSNEI07wOqrmRFI3omptI0QjTvBmqeT8TA2ngL5RmJsU2WCC1EutUrNFCliZiEgDOpEeMpl5SEjnB7IVNE1EZmixN6EXHfFIKLRhjPqklHbImkspWFmC6OwLE34E4i5RECxBgAG2AI1+KAqwGAAAAAElFTkSuQmCC') center center no-repeat "+background
+						};
+
+						// Import custome style
+						if ("object"===typeof options.style) style = $.extend(style,options.style);
+					} else {
+						var style = {};
+					}
+
+					$(this.nodes.slider)
+					.put($('<div />', {
+						"class":"controls-right"
+					}))
+					.css(style)
+					.condition("string"===typeof options["class"], function() {
+						$(this).addClass(options["class"]);
+						return this;
+					}, function() { return this; })
+					.bind('click', function() {
+
+						that.userNext();
+						return false;
+					})
+					.tie(function() {
+						that.nodes.controlRight = this;
+					})
+					.put($('<div />'));
+				}).call(this, rightOptions);
 			}
 		}
 		this.init();
